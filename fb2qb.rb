@@ -4,11 +4,11 @@ require 'pp'
 require 'ap'
 
 class Transaction
-  attr_accessor :trnsid, :trnstype, :date, :accnt, :name, :amnt, :docnum, :memo, :paid, :spl
+  attr_accessor :trnsid, :trnstype, :date, :accnt, :name, :amount, :docnum, :memo, :paid, :spl
 end
 
 class Splitline
-  attr_accessor :splid, :trnstype, :date, :accnt, :name, :amnt, :docnum, :memo, :price, :qnty, :invitem, :paymeth, :taxable, :extra
+  attr_accessor :splid, :trnstype, :date, :accnt, :name, :amount, :docnum, :memo, :price, :qnty, :invitem, :paymeth, :taxable, :extra
 end
 
 class Counter
@@ -72,8 +72,8 @@ ARGF.each do |line|
          @trnsaccntid = index
        elsif value == "NAME"
          @trnsnameid = index
-       elsif value == "AMNT"
-         @trnsamntid = index
+       elsif value == "AMOUNT"
+         @trnsamountid = index
        elsif value == "DOCNUM"
          @trnsdocnumid = index
        elsif value == "MEMO"
@@ -108,8 +108,8 @@ ARGF.each do |line|
          @splaccntid = index
        elsif value == "NAME"
          @splnameid = index
-       elsif value == "AMNT"
-         @splamntid = index
+       elsif value == "AMOUNT"
+         @splamountid = index
        elsif value == "DOCNUM"
          @spldocnumid = index
        elsif value == "MEMO"
@@ -171,14 +171,14 @@ ARGF.each do |line|
      puts "    SPL ##{splnum.value}"
      puts "%5d: %s" % [@splsplid, currentspl[@splsplid.to_i]] if @splsplid
      puts "%5d: %s" % [@splaccntid, currentspl[@splaccntid.to_i]] if @splaccntid 
-     puts "%5d: %s" % [@splamntid, currentspl[@splamntid.to_i]] if @splamntid
+     puts "%5d: %s" % [@splamountid, currentspl[@splamountid.to_i]] if @splamountid
      puts "%5d: %s" % [@splmemoid, currentspl[@splmemoid.to_i]] if @splmemoid
      
      @splitline = Splitline.new
      
      @splitline.splid = currentspl[@splsplid.to_i] if @splsplid
      @splitline.accnt = currentspl[@splaccntid.to_i] if @splaccntid 
-     @splitline.amnt = currentspl[@splamntid.to_i] if @splamntid
+     @splitline.amount = currentspl[@splamountid.to_i] if @splamountid
      
      puts "     #{@splitline.inspect}"
      
