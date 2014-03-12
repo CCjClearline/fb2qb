@@ -8,6 +8,8 @@ class Splitline
   attr_accessor :splid, :trnstype, :date, :accnt, :name, :amount, :docnum, :memo, :price, :qnty, :invitem, :paymeth, :taxable, :extra
 end
 
+@error = ""
+
 
 # Read through our input file line by line
 ARGF.each do |line|
@@ -25,31 +27,75 @@ ARGF.each do |line|
    case linetype
 
    when "!TRNS"
-     # We're at the beginning of the transactions section, defining fields.
      iam = "TRNS header"
+     # We're at the beginning of the transactions section, defining fields.
+     
+     # We know what fields are allowed, but not necessarily what order they are in.
+     # Create an array of field names, so we can flip through them, looking for what we want
+     trnsheader = line.split("\t")
+     
+     trnsheader.each_with_index do |value,index|
+       puts "%5d: %s" % [index, value]
+       if value == "!TRNS"
+         @trnstrns = index
+       elsif value == "TRNSID"
+         @trnstrnsidid = index
+       elsif value == "TRNSTYPE"
+         @trnstrnstypeid = index
+       elsif value == "DATE"
+         @trnsdateid = index
+       elsif value == "ACCNT"
+         @trnsaccntid = index
+       elsif value == "NAME"
+         @trnsnameid = index
+       elsif value == "AMOUNT"
+         @trnsamountid = index
+       elsif value == "DOCNUM"
+         @trnsdocnumid = index
+       elsif value == "MEMO"
+         @trnsmemoid = index
+       elsif value == "PAID"
+         @trnspaidid = index
+       else
+         @error << "Unrecognized TRNS field: #{value}."
+       end #trnsheader.each_with_index
+       
+       
+     end #trnsheader.each
      
    when "!SPL"
-     # We're at the beginning of the splitline section, defining fields.
      iam = "SPL header"
+     # We're at the beginning of the splitline section, defining fields.
+     
      
    when "!ENDTRNS"
-     # We're at the end of the transaction headers
      iam = "EOH"
+     # We're at the end of the transaction headers
+     
 
    when "TRNS"
-     # We're beginning a transaction block 
      iam = "TRNS detail"
+     # We're beginning a transaction block 
+     
+     trns = line.split("\t")
+     puts trns[@trnstrnstypeid.to_i]
+     puts trns[@trnsmemoid.to_i]
+     
      
    when "SPL"
-     # We're in a splitline
      iam = "SPL detail"
+     # We're in a splitline
+     
      
    when "ENDTRNS"
-     # we're at the end of a transaction block
      iam = "EOT"
+     # we're at the end of a transaction block
+     
      
    end # case linetype
    
-   puts "I am a #{iam} line."
+   #puts "I am a #{iam} line."
    
-end
+end #ARGF.each
+
+puts @error
