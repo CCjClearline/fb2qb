@@ -4,11 +4,11 @@ require 'pp'
 require 'ap'
 
 class Transaction
-  attr_accessor :trnsid, :trnstype, :date, :accnt, :name, :amount, :docnum, :memo, :paid, :spl
+  attr_accessor :trnsid, :trnstype, :date, :accnt, :name, :amnt, :docnum, :memo, :paid, :spl
 end
 
 class Splitline
-  attr_accessor :splid, :trnstype, :date, :accnt, :name, :amount, :docnum, :memo, :price, :qnty, :invitem, :paymeth, :taxable, :extra
+  attr_accessor :splid, :trnstype, :date, :accnt, :name, :amnt, :docnum, :memo, :price, :qnty, :invitem, :paymeth, :taxable, :extra
 end
 
 class Counter
@@ -57,6 +57,9 @@ ARGF.each do |line|
      
      trnsheader.each_with_index do |value,index|
        puts "%5d: %s" % [index, value]
+       
+       # Can we clean this up by looking up the defined attributes for the Transaction class and setting 
+       # @trns{attribute_name}id = index if value == {attribute_name}
        if value == "!TRNS"
          @trnstrnsid = index
        elsif value == "TRNSID"
@@ -69,8 +72,8 @@ ARGF.each do |line|
          @trnsaccntid = index
        elsif value == "NAME"
          @trnsnameid = index
-       elsif value == "AMOUNT"
-         @trnsamountid = index
+       elsif value == "AMNT"
+         @trnsamntid = index
        elsif value == "DOCNUM"
          @trnsdocnumid = index
        elsif value == "MEMO"
@@ -79,20 +82,61 @@ ARGF.each do |line|
          @trnspaidid = index
        else
          @error << "Unrecognized TRNS field: #{value}."
-       end #trnsheader.each_with_index
+       end # if value ==
        
        
-     end #trnsheader.each
+     end #trnsheader.each_with_index
      
    when "!SPL"
      iam = "SPL header"
      # We're at the beginning of the splitline section, defining fields.
+     # :splid, :trnstype, :date, :accnt, :name, :amt, :docnum, :memo, :price, :qnty, :invitem, :paymeth, :taxable, :extra
+     
+     splheader = line.split("\t")
+     splheader.each_with_index do |value,index|
+       puts "%5d: %s" % [index, value]
+       # Can we clean this up by looking up the defined attributes for the Splitline class and setting @spl{attribute_name}id = index?
+       if value == "!SPL"
+         @splsplid = index
+       elsif value == "SPLID"
+         @splsplidid = index
+       elsif value == "TRNSTYPE"
+         @spltrnstypeid = index
+       elsif value == "DATE"
+         @spldateid = index
+       elsif value == "ACCNT"
+         @splaccntid = index
+       elsif value == "NAME"
+         @splnameid = index
+       elsif value == "AMNT"
+         @splamntid = index
+       elsif value == "DOCNUM"
+         @spldocnumid = index
+       elsif value == "MEMO"
+         @splmemoid = index
+       elsif value == "PRICE"
+         @splpriceid = index
+       elsif value == "QNTY"
+         @splqntyid = index
+       elsif value == "INVITEM"
+         @splinvitemid = index
+       elsif value == "PAYMETH"
+         @splpaymethid = index
+       elsif value == "TAXABLE"
+         @spltaxableid = index
+       elsif value == "EXTRA"
+         @splextraid = index
+       else
+         @error << "Unrecognized SPL field #{value}."
+       end # if value ==
+       
+     end #splheader.each_with_index
      
      
    when "!ENDTRNS"
      iam = "EOH"
      # We're at the end of the transaction headers
-     
+     # Nothing to do here
 
    when "TRNS"
      iam = "TRNS detail"
@@ -113,13 +157,32 @@ ARGF.each do |line|
      @transaction.memo = currenttrns[@trnsmemoid.to_i] if @trnsmemoid
      @transaction.docnum = currenttrns[@trnsdocnumid.to_i] if @trnsdocnumid
      
-     puts @transaction.inspect
+     # .spl is going to be an array of SPL lines for this transaction
+     @transaction.spl = []
+     
+     puts "     #{@transaction.inspect}"
      
    when "SPL"
      iam = "SPL detail"
      # We're in a splitline
      
+     currentspl = line.split("\t")
+     
      puts "    SPL ##{splnum.value}"
+     puts "%5d: %s" % [@splsplid, currentspl[@splsplid.to_i]] if @splsplid
+     puts "%5d: %s" % [@splaccntid, currentspl[@splaccntid.to_i]] if @splaccntid 
+     puts "%5d: %s" % [@splamntid, currentspl[@splamntid.to_i]] if @splamntid
+     puts "%5d: %s" % [@splmemoid, currentspl[@splmemoid.to_i]] if @splmemoid
+     
+     @splitline = Splitline.new
+     
+     @splitline.splid = currentspl[@splsplid.to_i] if @splsplid
+     @splitline.accnt = currentspl[@splaccntid.to_i] if @splaccntid 
+     @splitline.amnt = currentspl[@splamntid.to_i] if @splamntid
+     
+     puts "     #{@splitline.inspect}"
+     
+     @transaction.spl << @splitline
 
      # increment SPL counter
      splnum.inc
@@ -144,8 +207,13 @@ puts @error
 
 puts ""
 
-ap @trns
+pp @trns
+
+puts ""
 
 @trns.each do |transaction|
-  puts transaction.trnstype
+  puts "This transaction is type #{transaction.trnstype}."
+  puts "This transaction has #{transaction.spl.count} splitlines."
+  puts "The second splitline looks like this: #{transaction.spl[1].inspect}"
+  puts ""
 end
