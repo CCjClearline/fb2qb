@@ -37,7 +37,7 @@ ARGF.each do |line|
      trnsheader.each_with_index do |value,index|
        puts "%5d: %s" % [index, value]
        if value == "!TRNS"
-         @trnstrns = index
+         @trnstrnsid = index
        elsif value == "TRNSID"
          @trnstrnsidid = index
        elsif value == "TRNSTYPE"
@@ -78,8 +78,11 @@ ARGF.each do |line|
      # We're beginning a transaction block 
      
      trns = line.split("\t")
-     puts trns[@trnstrnstypeid.to_i]
-     puts trns[@trnsmemoid.to_i]
+     
+     puts "%5d: %s" % [@trnstrnsid, trns[@trnstrnsid.to_i]] if @trnstrnsid
+     puts "%5d: %s" % [@trnstrnsidid, trns[@trnstrnsidid.to_i]] if @trnstrnsidid 
+     puts "%5d: %s" % [@trnstrnstypeid, trns[@trnstrnstypeid.to_i]] if @trnstrnstypeid
+     puts "%5d: %s" % [@trnsmemoid, trns[@trnsmemoid.to_i]] if @trnsmemoid
      
      
    when "SPL"
