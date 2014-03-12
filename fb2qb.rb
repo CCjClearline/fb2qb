@@ -1,12 +1,33 @@
 #!/usr/bin/env ruby
 
+require 'pp'
+require 'ap'
+
 class Transaction
-  Struct.new(:trnsid, :trnstype, :date, :accnt, :name, :amount, :docnum, :memo, :paid, :spl)
+  attr_accessor :trnsid, :trnstype, :date, :accnt, :name, :amount, :docnum, :memo, :paid, :spl
 end
 
 class Splitline
   attr_accessor :splid, :trnstype, :date, :accnt, :name, :amount, :docnum, :memo, :price, :qnty, :invitem, :paymeth, :taxable, :extra
 end
+
+class Counter
+  attr_accessor :value
+  def initialize(i = 0)
+    @value = i
+  end
+  def inc
+    @value = @value.succ
+  end
+  def reset
+    @value = 0
+  end
+end
+
+trnsnum = Counter.new
+splnum = Counter.new
+
+@trns = []
 
 @error = ""
 
@@ -77,23 +98,41 @@ ARGF.each do |line|
      iam = "TRNS detail"
      # We're beginning a transaction block 
      
-     trns = line.split("\t")
+     currenttrns = line.split("\t")
      
-     puts "%5d: %s" % [@trnstrnsid, trns[@trnstrnsid.to_i]] if @trnstrnsid
-     puts "%5d: %s" % [@trnstrnsidid, trns[@trnstrnsidid.to_i]] if @trnstrnsidid 
-     puts "%5d: %s" % [@trnstrnstypeid, trns[@trnstrnstypeid.to_i]] if @trnstrnstypeid
-     puts "%5d: %s" % [@trnsmemoid, trns[@trnsmemoid.to_i]] if @trnsmemoid
+     puts "   TRNS ##{trnsnum.value}"
+     puts "%5d: %s" % [@trnstrnsid, currenttrns[@trnstrnsid.to_i]] if @trnstrnsid
+     puts "%5d: %s" % [@trnstrnsidid, currenttrns[@trnstrnsidid.to_i]] if @trnstrnsidid 
+     puts "%5d: %s" % [@trnstrnstypeid, currenttrns[@trnstrnstypeid.to_i]] if @trnstrnstypeid
+     puts "%5d: %s" % [@trnsmemoid, currenttrns[@trnsmemoid.to_i]] if @trnsmemoid
      
+     @transaction = Transaction.new
+     
+     @transaction.trnsid = currenttrns[@trnstrnsid.to_i] if @trnstrnsid
+     @transaction.trnstype = currenttrns[@trnstrnstypeid.to_i] if @trnstrnstypeid
+     @transaction.memo = currenttrns[@trnsmemoid.to_i] if @trnsmemoid
+     @transaction.docnum = currenttrns[@trnsdocnumid.to_i] if @trnsdocnumid
+     
+     puts @transaction.inspect
      
    when "SPL"
      iam = "SPL detail"
      # We're in a splitline
      
-     
+     puts "    SPL ##{splnum.value}"
+
+     # increment SPL counter
+     splnum.inc
+
    when "ENDTRNS"
      iam = "EOT"
      # we're at the end of a transaction block
      
+     @trns << @transaction
+     
+     # increment TRNS counter & reset SPL counter
+     trnsnum.inc
+     splnum.reset
      
    end # case linetype
    
@@ -102,3 +141,11 @@ ARGF.each do |line|
 end #ARGF.each
 
 puts @error
+
+puts ""
+
+ap @trns
+
+@trns.each do |transaction|
+  puts transaction.trnstype
+end
