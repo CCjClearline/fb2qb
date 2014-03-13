@@ -33,6 +33,7 @@ splnum = Counter.new
 
 
 # Read through our input file line by line
+
 ARGF.each do |line|
    # puts "%3d: %s" % [ARGF.lineno, line]
    
@@ -160,6 +161,36 @@ ARGF.each do |line|
      # .spl is going to be an array of SPL lines for this transaction
      @transaction.spl = []
      
+     puts "     Original transaction is:"
+     puts "     #{@transaction.inspect}"
+     
+     
+     if @transaction.trnstype == "JE"
+     # This is a trick question; all FB transactions are JE transactions. But maybe one day....
+     # This is a JE transaction; transform the shit out of it.
+      
+      # What sort of transaction is this really?
+      # Allowed, expected values include
+      #   Invoice
+      #   Payment
+      #   Credit Memo
+      @transaction.trnstype = "INVOICE" if @transaction.memo.start_with?("Invoice")
+      @transaction.trnstype = "PAYMENT" if @transaction.memo.start_with?("Payment")
+      @transaction.trnstype = "CREDIT MEMO" if @transaction.memo.start_with?("Credit")
+     
+      case @transaction.trnstype
+        
+      when "INVOICE"
+        
+      when "PAYMENT"
+        
+      when "CREDIT MEMO"
+        
+      end #c ase @transaction.trnstype
+     
+     end # @transaction.trnstype == "JE"
+     
+     puts "     Transformed transaction is:"
      puts "     #{@transaction.inspect}"
      
    when "SPL"
