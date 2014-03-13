@@ -5,6 +5,14 @@ require 'ap'
 
 class Transaction
   attr_accessor :trnsid, :trnstype, :date, :accnt, :name, :amount, :docnum, :memo, :paid, :spl
+  
+  def self.all
+    ObjectSpace.each_object(self).to_a
+  end
+
+  def self.count
+    all.count
+  end
 end
 
 class Splitline
@@ -222,8 +230,6 @@ ARGF.each do |line|
      iam = "EOT"
      # we're at the end of a transaction block
      
-     @trns << @transaction
-     
      # increment TRNS counter & reset SPL counter
      trnsnum.inc
      splnum.reset
@@ -238,11 +244,11 @@ puts @error
 
 puts ""
 
-pp @trns
+puts "Created #{Transaction.count} transactions."
 
 puts ""
 
-@trns.each do |transaction|
+Transaction.all.each do |transaction|
   puts "This transaction is type #{transaction.trnstype}."
   puts "This transaction has #{transaction.spl.count} splitlines."
   puts "The second splitline looks like this: #{transaction.spl[1].inspect}"
