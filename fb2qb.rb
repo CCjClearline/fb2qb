@@ -13,6 +13,7 @@ class Transaction
   def self.count
     all.count
   end
+  
 end
 
 class Splitline
@@ -189,6 +190,18 @@ ARGF.each do |line|
       case @transaction.trnstype
         
       when "INVOICE"
+        # Invoice number is in @transaction.memo -- "Invoice: 1234 ....."
+
+        #docnum = @transaction.memo
+        #puts "Document number is #{docnum}"
+        #docnum.slice! "Invoice:"
+        #puts "Document number is #{docnum}"
+        #docnum = docnum.split(" ").first
+        #puts "Document number is #{docnum}"
+        
+        docnum = @transaction.memo.split(" ").first.split(":").last.to_i
+        @transaction.docnum = docnum if docnum.is_a?(Numeric)
+        # Should probably check that docnum is a plausible document number
         
       when "PAYMENT"
         
