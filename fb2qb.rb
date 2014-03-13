@@ -4,7 +4,7 @@ require 'pp'
 require 'ap'
 
 class Transaction
-  attr_accessor :trns, :trnsid, :trnstype, :date, :accnt, :name, :amount, :docnum, :memo, :paid, :paymeth, :spl
+  attr_accessor :trns, :trnsid, :trnstype, :date, :accnt, :name, :amount, :docnum, :memo, :paid, :paymeth, :original, :spl
   
   def self.all
     ObjectSpace.each_object(self).to_a
@@ -72,6 +72,8 @@ ARGF.each do |line|
        # @trns{attribute_name}id = index if value == {attribute_name}
        if value == "!TRNS"
          @trnstrnsid = index
+       elsif value == "TRNSID"
+         @trnstrnsidid = index
        elsif value == "TRNSTYPE"
          @trnstrnstypeid = index
        elsif value == "DATE"
@@ -91,7 +93,7 @@ ARGF.each do |line|
        elsif value == "PAYMETH"
          @trnspaymethid = index
        else
-         @error << "Unrecognized TRNS field: #{value}."
+         @error << "Unrecognized TRNS field: #{value}.\n"
        end # if value ==
        
        
@@ -108,6 +110,8 @@ ARGF.each do |line|
        # Can we clean this up by looking up the defined attributes for the Splitline class and setting @spl{attribute_name}id = index?
        if value == "!SPL"
          @splsplid = index
+       elsif value == "SPLID"
+         @splsplidid = index
        elsif value == "TRNSTYPE"
          @spltrnstypeid = index
        elsif value == "DATE"
@@ -135,7 +139,7 @@ ARGF.each do |line|
        elsif value == "EXTRA"
          @splextraid = index
        else
-         @error << "Unrecognized SPL field #{value}."
+         @error << "Unrecognized SPL field #{value}.\n"
        end # if value ==
        
      end #splheader.each_with_index
@@ -165,6 +169,9 @@ ARGF.each do |line|
      @transaction.memo = currenttrns[@trnsmemoid.to_i] if @trnsmemoid
      @transaction.docnum = currenttrns[@trnsdocnumid.to_i] if @trnsdocnumid
      
+     # Storing original line to make it easier to process duplicate transactions
+     @transaction.original = line
+     
      # .spl is going to be an array of SPL lines for this transaction
      @transaction.spl = []
      puts ""
@@ -172,7 +179,7 @@ ARGF.each do |line|
      puts "     #{@transaction.inspect}"
      
      
-     if @transaction.trnstype == "JE"
+     if @transaction.trnstype == "GENERAL JOURNAL"
      # This is a trick question; all FB transactions are JE transactions. But maybe one day....
      # This is a JE transaction; transform the shit out of it.
       
@@ -273,13 +280,29 @@ ARGF.each do |line|
    
 end #ARGF.each
 
-puts @error
+
 
 puts ""
 
-puts "Created #{Transaction.count} transactions."
+puts "Found #{Transaction.count} transactions."
 
 puts ""
+
+grouped = Transaction.all.group_by(&:docnum)
+grouped.each do |group|
+
+  if group[0] && group[1].count > 1
+    @error << "There are #{group[1].count} #{group[1][0].trnstype} transactions with docnum #{group[0]}. The first one looks like this:\n"
+    @error << "#{group[1][0].original}\n"
+  end
+end
+
+
+if @error.length > 0
+  puts "Unable to generate IIF file. Please manually resolve the following issues:"
+  puts @error
+  exit
+end
 
 Transaction.all.each do |transaction|
   puts "This transaction is type #{transaction.trnstype}."
