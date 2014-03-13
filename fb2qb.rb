@@ -293,15 +293,13 @@ grouped.each do |group|
 
   if group[0] && group[1].count > 1
     @error << "There are #{group[1].count} #{group[1][0].trnstype} transactions with docnum #{group[0]}. The first one looks like this:\n"
-    @error << "#{group[1][0].original}\n"
+    @error << "#{group[1][0].original}\n\n"
   end
 end
 
 
 if @error.length > 0
-  puts "Unable to generate IIF file. Please manually resolve the following issues:"
-  puts @error
-  exit
+  abort("Unable to generate IIF file. Please manually resolve the following issues:\n#{@error}")
 end
 
 Transaction.all.each do |transaction|
