@@ -21,3 +21,5 @@ Some notes on IIF syntax
 
 FB exports include ACCNT, CUST, and TRNS entries. 
 
+TRNSID & SPLID are ignored on import (QB will assign its own values), however the columns should be included in the IIF file (with nil values), or QB does weird things.
+

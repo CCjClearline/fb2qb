@@ -4,7 +4,7 @@ require 'pp'
 require 'ap'
 
 class Transaction
-  attr_accessor :trnsid, :trnstype, :date, :accnt, :name, :amount, :docnum, :memo, :paid, :spl
+  attr_accessor :trns, :trnsid, :trnstype, :date, :accnt, :name, :amount, :docnum, :memo, :paid, :paymeth, :spl
   
   def self.all
     ObjectSpace.each_object(self).to_a
@@ -17,7 +17,7 @@ class Transaction
 end
 
 class Splitline
-  attr_accessor :splid, :trnstype, :date, :accnt, :name, :amount, :docnum, :memo, :price, :qnty, :invitem, :paymeth, :taxable, :extra
+  attr_accessor :spl, :splid, :trnstype, :date, :accnt, :name, :amount, :docnum, :memo, :price, :qnty, :invitem, :paymeth, :taxable, :extra
 end
 
 class Counter
@@ -72,8 +72,6 @@ ARGF.each do |line|
        # @trns{attribute_name}id = index if value == {attribute_name}
        if value == "!TRNS"
          @trnstrnsid = index
-       elsif value == "TRNSID"
-         @trnstrnsidid = index
        elsif value == "TRNSTYPE"
          @trnstrnstypeid = index
        elsif value == "DATE"
@@ -90,6 +88,8 @@ ARGF.each do |line|
          @trnsmemoid = index
        elsif value == "PAID"
          @trnspaidid = index
+       elsif value == "PAYMETH"
+         @trnspaymethid = index
        else
          @error << "Unrecognized TRNS field: #{value}."
        end # if value ==
@@ -108,8 +108,6 @@ ARGF.each do |line|
        # Can we clean this up by looking up the defined attributes for the Splitline class and setting @spl{attribute_name}id = index?
        if value == "!SPL"
          @splsplid = index
-       elsif value == "SPLID"
-         @splsplidid = index
        elsif value == "TRNSTYPE"
          @spltrnstypeid = index
        elsif value == "DATE"
@@ -156,20 +154,20 @@ ARGF.each do |line|
      
      puts "   TRNS ##{trnsnum.value}"
      puts "%5d: %s" % [@trnstrnsid, currenttrns[@trnstrnsid.to_i]] if @trnstrnsid
-     puts "%5d: %s" % [@trnstrnsidid, currenttrns[@trnstrnsidid.to_i]] if @trnstrnsidid 
      puts "%5d: %s" % [@trnstrnstypeid, currenttrns[@trnstrnstypeid.to_i]] if @trnstrnstypeid
      puts "%5d: %s" % [@trnsmemoid, currenttrns[@trnsmemoid.to_i]] if @trnsmemoid
      
      @transaction = Transaction.new
      
-     @transaction.trnsid = currenttrns[@trnstrnsid.to_i] if @trnstrnsid
+     @transaction.trns = currenttrns[@trnstrnsid.to_i] if @trnstrnsid
+     @transaction.trnsid = nil
      @transaction.trnstype = currenttrns[@trnstrnstypeid.to_i] if @trnstrnstypeid
      @transaction.memo = currenttrns[@trnsmemoid.to_i] if @trnsmemoid
      @transaction.docnum = currenttrns[@trnsdocnumid.to_i] if @trnsdocnumid
      
      # .spl is going to be an array of SPL lines for this transaction
      @transaction.spl = []
-     
+     puts ""
      puts "     Original transaction is:"
      puts "     #{@transaction.inspect}"
      
@@ -204,15 +202,39 @@ ARGF.each do |line|
         # Should probably check that docnum is a plausible document number
         
       when "PAYMENT"
+        # Payment number is in @transaction.memo, but the format varies depending upon payment method
+        # "Payment:ID - METHOD: note - JE:ID"
+        
+        @paymentmethod = @transaction.memo.split(" - ")
+        @paymentmethod = @paymentmethod[1]
+        @transaction.paymeth = "Credit" if @paymentmethod.start_with?('Stripe')
+        @transaction.paymeth = "Check" if @paymentmethod.start_with?('CH', 'Che')
+        @transaction.paymeth = "Debit" if @paymentmethod.start_with?('INTERAC')
+        @transaction.paymeth = "PayPal" if @paymentmethod.start_with?('Recurring', 'Pay')
+        @transaction.paymeth = "Cash" if @paymentmethod.start_with?('Cash')
+        
+        case @transaction.paymeth
+        when "Credit"
+          docnum = @transaction.memo.split(":")
+          docnum = docnum[3].split(" ").first
+          @transaction.docnum = docnum
+          
+        when "Check"
+          docnum = @transaction.memo.split(" - ")
+          docnum = docnum[1].split("#").last
+          @transaction.docnum = docnum
+        
+        end # case @transaction.paymeth
         
       when "CREDIT MEMO"
         
-      end #c ase @transaction.trnstype
+      end # case @transaction.trnstype
      
      end # @transaction.trnstype == "JE"
-     
+     puts ""
      puts "     Transformed transaction is:"
      puts "     #{@transaction.inspect}"
+     puts ""
      
    when "SPL"
      iam = "SPL detail"
@@ -221,14 +243,12 @@ ARGF.each do |line|
      currentspl = line.split("\t")
      
      puts "    SPL ##{splnum.value}"
-     puts "%5d: %s" % [@splsplid, currentspl[@splsplid.to_i]] if @splsplid
      puts "%5d: %s" % [@splaccntid, currentspl[@splaccntid.to_i]] if @splaccntid 
      puts "%5d: %s" % [@splamountid, currentspl[@splamountid.to_i]] if @splamountid
      puts "%5d: %s" % [@splmemoid, currentspl[@splmemoid.to_i]] if @splmemoid
      
      @splitline = Splitline.new
-     
-     @splitline.splid = currentspl[@splsplid.to_i] if @splsplid
+     @splitline.splid = nil
      @splitline.accnt = currentspl[@splaccntid.to_i] if @splaccntid 
      @splitline.amount = currentspl[@splamountid.to_i] if @splamountid
      
